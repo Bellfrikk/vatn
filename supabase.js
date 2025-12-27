@@ -1,2 +1,3 @@
- const supabaseURL = "https://zcnjlgzowtslkeipuvwn.supabase.co";
- const supabaseKEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjbmpsZ3pvd3RzbGtlaXB1dnduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3Nzc4NjUsImV4cCI6MjA4MjM1Mzg2NX0.bv5aY2h-DPXdElmAlFc22FRQHMyMbhTE0kSTnyvNQZk";
+ const db = supabase.createClient(
+  "https://zcnjlgzowtslkeipuvwn.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjbmpsZ3pvd3RzbGtlaXB1dnduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3Nzc4NjUsImV4cCI6MjA4MjM1Mzg2NX0.bv5aY2h-DPXdElmAlFc22FRQHMyMbhTE0kSTnyvNQZk");

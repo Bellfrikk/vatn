@@ -42,13 +42,11 @@
 <script src="supabase.js"></script>
 
 <script>
-const db = supabase.createClient(
-  supabaseURL,
-  supabaseKEY
-);
+
 
 const form = document.getElementById("skjema");
 const status = document.getElementById("status");
+let listeData = [];
 const liste = document.getElementById("liste");
 const datoInput = document.getElementById("dato");
 const malarstandInput = document.getElementById("malarstand");
@@ -112,14 +110,12 @@ async function hentMalingar(){
 
   liste.innerHTML = "";
   const labels = [];
-  const maalData = [];
   const forbrukData = [];
 
   for(let i=0;i<data.length;i++){
     const curr = data[i];
     const prev = data[i-1];
     labels.push(curr.dato);
-    maalData.push(curr.målerstand);
 
     let brukText = "–";
     let daglig = 0;
@@ -128,22 +124,23 @@ async function hentMalingar(){
       const dager = Math.round((new Date(curr.dato) - new Date(prev.dato))/86400000);
       if(dager>0){
         daglig = diff/dager;
-        brukText = daglig.toFixed(2)+" liter/dag";
+        brukText = daglig.toFixed(2);
       }
     }
     forbrukData.push(daglig);
 
+
+    listeData.push(`<div class="dato">${curr.dato}: ${curr.målerstand} (${brukText})  ${curr.kommentar ?? ""}</div>`);
+  }
+  //snur rekkefølge på lista for visning
+  listeData = [...listeData].reverse();
+  listeData.forEach(item => {
     const card = document.createElement("div");
     card.className = "card";
-    card.innerHTML = `
-      <div class="dato">${curr.dato}</div>
-      <div>Målerstand: ${curr.målerstand}</div>
-      <div class="bruk">Dagleg bruk: ${brukText}</div>
-      <div class="muted">${curr.kommentar ?? ""}</div>
-    `;
+    card.innerHTML = item;
     liste.appendChild(card);
-  }
-  let chart;
+  });
+
   // Oppdater graf
   if(chart) chart.destroy();
   chart = new Chart(grafCtx,{
@@ -151,7 +148,7 @@ async function hentMalingar(){
     data:{
       labels: labels,
       datasets:[
-        { label:"Daglig bruk", data:forbrukData, borderColor:"#7dd87d", backgroundColor:"rgba(125,216,125,0.2)", tension:0.3 }
+        { label:"Liter/dag", data:forbrukData, borderColor:"#7dd87d", backgroundColor:"rgba(125,216,125,0.2)", tension:0.3 }
       ]
     },
     options:{
