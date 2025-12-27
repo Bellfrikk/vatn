@@ -1,72 +1,24 @@
 <!DOCTYPE html>
 <html lang="no">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Målerstand</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Målerstand</title>
 
-  <style>
-    body {
-      margin: 0;
-      font-family: system-ui, sans-serif;
-      background: #111;
-      color: #fff;
-      padding: 16px;
-    }
-
-    h1 {
-      text-align: center;
-    }
-
-    form {
-      display: grid;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-
-    input, button {
-      padding: 12px;
-      font-size: 16px;
-      border-radius: 6px;
-      border: none;
-    }
-
-    button {
-      background: #3fa9f5;
-      color: #000;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    .status {
-      text-align: center;
-      margin: 10px 0;
-    }
-
-    .list {
-      display: grid;
-      gap: 10px;
-    }
-
-    .card {
-      background: #1c1c1c;
-      padding: 12px;
-      border-radius: 8px;
-    }
-
-    .dato {
-      font-weight: bold;
-    }
-
-    .bruk {
-      color: #7dd87d;
-    }
-
-    .muted {
-      color: #aaa;
-      font-size: 14px;
-    }
-  </style>
+<style>
+  body { margin:0; font-family:system-ui,sans-serif; background:#111; color:#fff; padding:16px; }
+  h1{text-align:center;}
+  form{display:grid;gap:10px;margin-bottom:20px;}
+  input,button{padding:12px;font-size:16px;border-radius:6px;border:none;}
+  button{background:#3fa9f5;font-weight:bold;cursor:pointer;}
+  .status{text-align:center;margin:10px 0;}
+  .list{display:grid;gap:10px;}
+  .card{background:#1c1c1c;padding:12px;border-radius:8px;}
+  .dato{font-weight:bold;}
+  .bruk{color:#7dd87d;}
+  .muted{color:#aaa;font-size:14px;}
+  canvas{background:#222;border-radius:8px;margin-top:20px;}
+</style>
 </head>
 <body>
 
@@ -75,103 +27,142 @@
 <form id="skjema">
   <input type="date" id="dato" required>
   <input type="number" id="malarstand" placeholder="Målerstand" required>
-  <input type="text" id="kommentar" placeholder="Kommentar (valfri)">
+  <input type="text" id="kommentar" placeholder="Kommentar (valgfri)">
   <button type="submit">Lagre</button>
 </form>
 
 <div class="status" id="status"></div>
+<canvas id="graf" width="400" height="200"></canvas>
 
 <div class="list" id="liste"></div>
 
-<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="supabase.js"></script>
+
 <script>
-  const db = supabase.createClient( "https://zcnjlgzowtslkeipuvwn.supabase.co","eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjbmpsZ3pvd3RzbGtlaXB1dnduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3Nzc4NjUsImV4cCI6MjA4MjM1Mzg2NX0.bv5aY2h-DPXdElmAlFc22FRQHMyMbhTE0kSTnyvNQZk");
+const db = supabase.createClient(
+  supabaseURL,
+  supabaseKEY
+);
 
-  const form = document.getElementById("skjema");
-  const status = document.getElementById("status");
-  const liste = document.getElementById("liste");
+const form = document.getElementById("skjema");
+const status = document.getElementById("status");
+const liste = document.getElementById("liste");
+const datoInput = document.getElementById("dato");
+const malarstandInput = document.getElementById("malarstand");
+const kommentarInput = document.getElementById("kommentar");
+const grafCtx = document.getElementById("graf").getContext("2d");
 
-  // Sett dato til i dag
-  document.getElementById("dato").valueAsDate = new Date();
+datoInput.valueAsDate = new Date();
+let chart = null;
 
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    status.textContent = "Lagrer...";
+form.addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  status.textContent = "Lagrer...";
+  const nyMaal = Number(malarstandInput.value);
 
-    const dato = datoInput.value;
-    const malarstand = malarstandInput.value;
-    const kommentar = kommentarInput.value;
+  // Hent siste måling
+  const { data: sisteData, error: fetchError } = await db
+    .from("vatn")
+    .select("målerstand")
+    .order("dato",{ascending:false})
+    .limit(1);
 
-    const { error } = await db
-      .from("malarstand")
-      .insert([{
-        dato,
-        målerstand: malarstand,
-        kommentar
-      }]);
+  if(fetchError){
+    status.textContent = "Feil ved henting av siste måling";
+    return;
+  }
 
-    if (error) {
-      status.textContent = "❌ " + error.message;
-    } else {
-      status.textContent = "✅ Lagra";
-      form.reset();
-      document.getElementById("dato").valueAsDate = new Date();
-      hentMalingar();
-    }
-  });
+  const sisteMaal = sisteData?.[0]?.målerstand ?? 0;
 
-  async function hentMalingar() {
-    const { data, error } = await db
-      .from("malarstand")
-      .select("*")
-      .order("dato", { ascending: false });
-
-    if (error) {
-      liste.textContent = "Feil ved lasting";
+  if(nyMaal < sisteMaal){
+    const bekreft = confirm(`Denne målerstanden (${nyMaal}) er lavere enn sist registrerte (${sisteMaal}). Er du sikker?`);
+    if(!bekreft){
+      status.textContent = "Avbrutt";
       return;
-    }
-
-    liste.innerHTML = "";
-
-    for (let i = 0; i < data.length; i++) {
-      const curr = data[i];
-      const prev = data[i + 1];
-
-      let brukText = "–";
-
-      if (prev) {
-        const diff = curr.målerstand - prev.målerstand;
-        const dagar =
-          (new Date(curr.dato) - new Date(prev.dato)) / (1000 * 60 * 60 * 24);
-
-        if (dagar > 0) {
-          const perDag = diff / dagar;
-          brukText = perDag.toFixed(2) + " per dag";
-        }
-      }
-
-      const card = document.createElement("div");
-      card.className = "card";
-      card.innerHTML = `
-        <div class="dato">${curr.dato}</div>
-        <div>Målerstand: ${curr.målerstand}</div>
-        <div class="bruk">Dagleg bruk: ${brukText}</div>
-        <div class="muted">${curr.kommentar ?? ""}</div>
-      `;
-
-      liste.appendChild(card);
     }
   }
 
-  // Last inn ved oppstart
-  hentMalingar();
+  const { error } = await db
+    .from("vatn")
+    .insert([{ dato: datoInput.value, målerstand: nyMaal, kommentar: kommentarInput.value }]);
 
-  // Input-referansar
-  const datoInput = document.getElementById("dato");
-  const malarstandInput = document.getElementById("malarstand");
-  const kommentarInput = document.getElementById("kommentar");
+  if(error){
+    status.textContent = "❌ " + error.message;
+  } else {
+    status.textContent = "✅ Lagra";
+    form.reset();
+    datoInput.valueAsDate = new Date();
+    hentMalingar();
+  }
+});
+
+async function hentMalingar(){
+  const { data, error } = await db
+    .from("vatn")
+    .select("*")
+    .order("dato",{ascending:true}); // stigande for graf
+
+  if(error){
+    liste.textContent = "Feil ved lasting";
+    return;
+  }
+
+  liste.innerHTML = "";
+  const labels = [];
+  const maalData = [];
+  const forbrukData = [];
+
+  for(let i=0;i<data.length;i++){
+    const curr = data[i];
+    const prev = data[i-1];
+    labels.push(curr.dato);
+    maalData.push(curr.målerstand);
+
+    let brukText = "–";
+    let daglig = 0;
+    if(prev){
+      const diff = curr.målerstand - prev.målerstand;
+      const dager = Math.round((new Date(curr.dato) - new Date(prev.dato))/86400000);
+      if(dager>0){
+        daglig = diff/dager;
+        brukText = daglig.toFixed(2)+" liter/dag";
+      }
+    }
+    forbrukData.push(daglig);
+
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <div class="dato">${curr.dato}</div>
+      <div>Målerstand: ${curr.målerstand}</div>
+      <div class="bruk">Dagleg bruk: ${brukText}</div>
+      <div class="muted">${curr.kommentar ?? ""}</div>
+    `;
+    liste.appendChild(card);
+  }
+  let chart;
+  // Oppdater graf
+  if(chart) chart.destroy();
+  chart = new Chart(grafCtx,{
+    type:"line",
+    data:{
+      labels: labels,
+      datasets:[
+        { label:"Daglig bruk", data:forbrukData, borderColor:"#7dd87d", backgroundColor:"rgba(125,216,125,0.2)", tension:0.3 }
+      ]
+    },
+    options:{
+      responsive:true,
+      plugins:{legend:{labels:{color:"#fff"}}},
+      scales:{x:{ticks:{color:"#fff"}}, y:{ticks:{color:"#fff"}}}
+    }
+  });
+}
+
+hentMalingar();
 </script>
-
 </body>
 </html>
