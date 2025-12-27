@@ -86,10 +86,7 @@
 <!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-  const supabase = supabase.createClient(
-    "https://zcnjlgzowtslkeipuvwn.supabase.co",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjbmpsZ3pvd3RzbGtlaXB1dnduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3Nzc4NjUsImV4cCI6MjA4MjM1Mzg2NX0.bv5aY2h-DPXdElmAlFc22FRQHMyMbhTE0kSTnyvNQZk");
-  const supabaseUrl = "";
+  const supabase = supabase.createClient( "https://zcnjlgzowtslkeipuvwn.supabase.co","eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjbmpsZ3pvd3RzbGtlaXB1dnduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3Nzc4NjUsImV4cCI6MjA4MjM1Mzg2NX0.bv5aY2h-DPXdElmAlFc22FRQHMyMbhTE0kSTnyvNQZk");
 
   const form = document.getElementById("skjema");
   const status = document.getElementById("status");
@@ -152,5 +149,29 @@
           const perDag = diff / dagar;
           brukText = perDag.toFixed(2) + " per dag";
         }
+      }
 
-    
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `
+        <div class="dato">${curr.dato}</div>
+        <div>Målerstand: ${curr.målerstand}</div>
+        <div class="bruk">Dagleg bruk: ${brukText}</div>
+        <div class="muted">${curr.kommentar ?? ""}</div>
+      `;
+
+      liste.appendChild(card);
+    }
+  }
+
+  // Last inn ved oppstart
+  hentMalingar();
+
+  // Input-referansar
+  const datoInput = document.getElementById("dato");
+  const malarstandInput = document.getElementById("malarstand");
+  const kommentarInput = document.getElementById("kommentar");
+</script>
+
+</body>
+</html>
