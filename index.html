@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Målerstand</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: #111;
+      color: #fff;
+      padding: 16px;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    form {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    input, button {
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: none;
+    }
+
+    button {
+      background: #3fa9f5;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .status {
+      text-align: center;
+      margin: 10px 0;
+    }
+
+    .list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .card {
+      background: #1c1c1c;
+      padding: 12px;
+      border-radius: 8px;
+    }
+
+    .dato {
+      font-weight: bold;
+    }
+
+    .bruk {
+      color: #7dd87d;
+    }
+
+    .muted {
+      color: #aaa;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Målerstand</h1>
+
+<form id="skjema">
+  <input type="date" id="dato" required>
+  <input type="number" id="malarstand" placeholder="Målerstand" required>
+  <input type="text" id="kommentar" placeholder="Kommentar (valfri)">
+  <button type="submit">Lagre</button>
+</form>
+
+<div class="status" id="status"></div>
+
+<div class="list" id="liste"></div>
+
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const supabase = supabase.createClient(
+    "https://zcnjlgzowtslkeipuvwn.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjbmpsZ3pvd3RzbGtlaXB1dnduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3Nzc4NjUsImV4cCI6MjA4MjM1Mzg2NX0.bv5aY2h-DPXdElmAlFc22FRQHMyMbhTE0kSTnyvNQZk");
+  const supabaseUrl = "";
+
+  const form = document.getElementById("skjema");
+  const status = document.getElementById("status");
+  const liste = document.getElementById("liste");
+
+  // Sett dato til i dag
+  document.getElementById("dato").valueAsDate = new Date();
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    status.textContent = "Lagrer...";
+
+    const dato = datoInput.value;
+    const malarstand = malarstandInput.value;
+    const kommentar = kommentarInput.value;
+
+    const { error } = await supabase
+      .from("malarstand")
+      .insert([{
+        dato,
+        målerstand: malarstand,
+        kommentar
+      }]);
+
+    if (error) {
+      status.textContent = "❌ " + error.message;
+    } else {
+      status.textContent = "✅ Lagra";
+      form.reset();
+      document.getElementById("dato").valueAsDate = new Date();
+      hentMalingar();
+    }
+  });
+
+  async function hentMalingar() {
+    const { data, error } = await supabase
+      .from("malarstand")
+      .select("*")
+      .order("dato", { ascending: false });
+
+    if (error) {
+      liste.textContent = "Feil ved lasting";
+      return;
+    }
+
+    liste.innerHTML = "";
+
+    for (let i = 0; i < data.length; i++) {
+      const curr = data[i];
+      const prev = data[i + 1];
+
+      let brukText = "–";
+
+      if (prev) {
+        const diff = curr.målerstand - prev.målerstand;
+        const dagar =
+          (new Date(curr.dato) - new Date(prev.dato)) / (1000 * 60 * 60 * 24);
+
+        if (dagar > 0) {
+          const perDag = diff / dagar;
+          brukText = perDag.toFixed(2) + " per dag";
+        }
+
+    
