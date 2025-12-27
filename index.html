@@ -86,7 +86,7 @@
 <!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-  const supabase = supabase.createClient( "https://zcnjlgzowtslkeipuvwn.supabase.co","eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjbmpsZ3pvd3RzbGtlaXB1dnduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3Nzc4NjUsImV4cCI6MjA4MjM1Mzg2NX0.bv5aY2h-DPXdElmAlFc22FRQHMyMbhTE0kSTnyvNQZk");
+  const db = supabase.createClient( "https://zcnjlgzowtslkeipuvwn.supabase.co","eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjbmpsZ3pvd3RzbGtlaXB1dnduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3Nzc4NjUsImV4cCI6MjA4MjM1Mzg2NX0.bv5aY2h-DPXdElmAlFc22FRQHMyMbhTE0kSTnyvNQZk");
 
   const form = document.getElementById("skjema");
   const status = document.getElementById("status");
@@ -103,7 +103,7 @@
     const malarstand = malarstandInput.value;
     const kommentar = kommentarInput.value;
 
-    const { error } = await supabase
+    const { error } = await db
       .from("malarstand")
       .insert([{
         dato,
@@ -122,7 +122,7 @@
   });
 
   async function hentMalingar() {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("malarstand")
       .select("*")
       .order("dato", { ascending: false });
